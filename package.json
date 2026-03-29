@@ -4,18 +4,20 @@
   "private": true,
   "scripts": {
     "dev-frontend": "pnpm i && next dev --turbopack",
-    "dev-agent": "cd agent && poetry install && poetry run langgraph dev --host localhost --port 8123 --no-browser",
+    "dev-agent": "cd agent && uv sync && uv run langgraph dev --host localhost --port 8123 --no-browser --allow-blocking",
     "dev": "pnpx concurrently \"pnpm dev-frontend\" \"pnpm dev-agent\" --names ui,agent --prefix-colors blue,green",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
   },
   "dependencies": {
-    "@copilotkit/react-core": "^1.6.0",
+    "@copilotkit/react-core": "^1.54.1",
     "@copilotkit/react-ui": "^1.6.0",
     "@copilotkit/runtime": "^1.6.0",
     "@heroicons/react": "^2.2.0",
-    "@langchain/openai": "^0.4.5",
+    "@langchain/core": "^1.1.36",
+    "@langchain/langgraph": "^1.2.6",
+    "@langchain/openai": "^1.3.1",
     "class-validator": "^0.14.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -24,8 +26,17 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-spreadsheet": "^0.9.5",
+    "shiki": "^4.0.2",
     "tailwind-merge": "^3.0.2",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "zod": "^3.23.8"
+  },
+  "pnpm": {
+    "overrides": {
+      "shiki": "3.23.0",
+      "zod": "^3.23.8",
+      "@langchain/core": "^1.1.36"
+    }
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

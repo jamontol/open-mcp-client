@@ -1,9 +1,9 @@
 import {
   CopilotRuntime,
   copilotRuntimeNextJSAppRouterEndpoint,
-  langGraphPlatformEndpoint,
   LangChainAdapter
 } from "@copilotkit/runtime";
+import { LangGraphAgent } from "@copilotkit/runtime/langgraph"; // Add this import
 import { NextRequest } from "next/server";
 import { ChatOpenAI } from "@langchain/openai";
 
@@ -14,6 +14,8 @@ const serviceAdapter = new LangChainAdapter({
   },
 })
 
+const langsmithApiKey = process.env.LANGSMITH_API_KEY as string;
+
 const model = new ChatOpenAI({
   modelName: "gpt-4o-mini",
   temperature: 0,
@@ -21,18 +23,14 @@ const model = new ChatOpenAI({
 });
 
 const runtime = new CopilotRuntime({
-  remoteEndpoints: [
-    langGraphPlatformEndpoint({
-      deploymentUrl: `${process.env.AGENT_DEPLOYMENT_URL || 'http://localhost:8123'}`,
-      langsmithApiKey: process.env.LANGSMITH_API_KEY,
-      agents: [
-        {
-          name: 'sample_agent', 
-          description: 'A helpful LLM agent.',
-        }
-      ]
+  // Use 'agents' instead of 'remoteEndpoints'
+  agents: {
+    sample_agent: new LangGraphAgent({
+      deploymentUrl: process.env.AGENT_DEPLOYMENT_URL || "http://localhost:8123",
+      langsmithApiKey,
+      graphId: "sample_agent",
     }),
-  ],
+    }
 });
 
 export const POST = async (req: NextRequest) => {
