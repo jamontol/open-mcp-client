@@ -5,7 +5,7 @@ import { useCoAgent } from "@copilotkit/react-core";
 import { ExampleConfigs } from "./ExampleConfigs";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 
-type ConnectionType = "stdio" | "sse";
+type ConnectionType = "stdio" | "streamable_http";
 
 interface StdioConfig {
   command: string;
@@ -13,12 +13,12 @@ interface StdioConfig {
   transport: "stdio";
 }
 
-interface SSEConfig {
+interface HTTPConfig {
   url: string;
-  transport: "sse";
+  transport: "streamable_http";
 }
 
-type ServerConfig = StdioConfig | SSEConfig;
+type ServerConfig = StdioConfig | HTTPConfig;
 
 // Define a generic type for our state
 interface AgentState {
@@ -84,8 +84,8 @@ export function MCPConfigForm({ showSpreadsheet, setShowSpreadsheet }: { showSpr
   const stdioServers = Object.values(configs).filter(
     (config) => config.transport === "stdio"
   ).length;
-  const sseServers = Object.values(configs).filter(
-    (config) => config.transport === "sse"
+  const httpServers = Object.values(configs).filter(
+    (config) => config.transport === "streamable_http"
   ).length;
 
   // Set loading to false when state is loaded
@@ -127,7 +127,7 @@ export function MCPConfigForm({ showSpreadsheet, setShowSpreadsheet }: { showSpr
           }
         : {
             url,
-            transport: "sse" as const,
+            transport: "streamable_http" as const,
           };
 
     setConfigs({
@@ -272,8 +272,8 @@ export function MCPConfigForm({ showSpreadsheet, setShowSpreadsheet }: { showSpr
           <div className="text-3xl font-bold">{stdioServers}</div>
         </div>
         <div className="bg-white border rounded-md p-4">
-          <div className="text-sm text-gray-500">SSE Servers</div>
-          <div className="text-3xl font-bold">{sseServers}</div>
+          <div className="text-sm text-gray-500">HTTP Servers</div>
+          <div className="text-3xl font-bold">{httpServers}</div>
         </div>
       </div>
 
@@ -515,9 +515,9 @@ export function MCPConfigForm({ showSpreadsheet, setShowSpreadsheet }: { showSpr
                   </button>
                   <button
                     type="button"
-                    onClick={() => setConnectionType("sse")}
+                    onClick={() => setConnectionType("streamable_http")}
                     className={`px-3 py-2 border rounded-md text-center flex items-center justify-center ${
-                      connectionType === "sse"
+                      connectionType === "streamable_http"
                         ? "bg-gray-200 border-gray-400 text-gray-800"
                         : "bg-white text-gray-700"
                     }`}

@@ -22,13 +22,13 @@ const model = new ChatOpenAI({
   apiKey: process.env["OPENAI_API_KEY"],
 });
 
-const runtime = new CopilotRuntime({
+const runtime = new CopilotRuntime({  
   // Use 'agents' instead of 'remoteEndpoints'
   agents: {
     sample_agent: new LangGraphAgent({
       deploymentUrl: process.env.AGENT_DEPLOYMENT_URL || "http://localhost:8123",
       langsmithApiKey,
-      graphId: "sample_agent",
+      graphId: "orion_agent" //"sample_agent",
     }),
     }
 });

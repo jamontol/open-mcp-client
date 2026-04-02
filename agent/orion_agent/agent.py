@@ -3,6 +3,9 @@ This is the main entry point for the agent.
 It defines the workflow graph, state, tools, nodes and edges.
 """
 import os
+import sys
+from loguru import logger
+import httpx
 from typing_extensions import Literal, TypedDict, Dict, List, Any, Union, Optional
 from langchain_openai import ChatOpenAI
 from langchain_core.runnables import RunnableConfig
@@ -17,27 +20,26 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-MCP_TRANSPORT = os.getenv("SERVER__TRANSPORT", "streamable-http")
-MCP_HOST = os.getenv("SERVER__HOST", "localhost")
-MCP_PORT = int(os.getenv("SERVER__PORT", 8005))
-MCP_PATH = os.getenv("SERVER__PATH", "/mcp")
-MCP_CLIENT_P7 = os.getenv("SERVER__CLIENT_P7", "xxx")
-MCP_AGENTCORE_URL = os.getenv(
-    "CLOUD_AGENTCORE_URL", "https://amrt0001-es-gw-uq4rbba6kp.gateway.bedrock-agentcore.eu-west-1.amazonaws.com/mcp"
-)
+# MCP_TRANSPORT = os.getenv("SERVER__TRANSPORT", "streamable-http")
+# MCP_HOST = os.getenv("SERVER__HOST", "localhost")
+# MCP_PORT = int(os.getenv("SERVER__PORT", 8005))
+# MCP_PATH = os.getenv("SERVER__PATH", "/mcp")
+# MCP_CLIENT_P7 = os.getenv("SERVER__CLIENT_P7", "xxx")
 
-# https://amrt0001-es-gw-xtechzd7oz.gateway.bedrock-agentcore.eu-west-1.amazonaws.com/mcp
+
+
+P7 = os.getenv("P7","p7_header")
 
 # OAuth client credentials
-CLIENT_ID = "gl;onyx-obsidian;work/f9c088b4-9717-4987-9742-f7cfcbdb76d2"  # "mvp-oauth-client"
+JWT_URL = os.getenv("JWT_URL", "https://onyx-obsidian.work.global.platform.bbva.com/auth/token")
+
+CLIENT_ID = "mvp-oauth-client"
 CLIENT_SECRET = os.getenv("OIDC__CLIENT_SECRET", "xxx")
 
-JWT_URL = "https://onyx-obsidian.work.global.platform.bbva.com/auth/token"
+GATEWAY_URL = "https://amrt0001-es-gw-uq4rbba6kp.gateway.bedrock-agentcore.eu-west-1.amazonaws.com/mcp"
+
 logger.remove()
 logger.add(sys.stderr, format="<level>{level}</level> | {message}")
-MCP_AGENTCORE_URL = os.getenv(
-    "CLOUD_AGENTCORE_URL", "https://amrt0001-es-gw-uq4rbba6kp.gateway.bedrock-agentcore.eu-west-1.amazonaws.com/mcp"
-)
 
 
 def get_jwt_token() -> str:
@@ -76,7 +78,8 @@ class SSEConnection(TypedDict):
 
 class HTTPConnection(TypedDict):
     url: str
-    transport: Literal["http_streamable"]
+    headers: Dict[str, str]
+    transport: Literal["streamable_http"]
 
 # Type for MCP configuration
 MCPConfig = Dict[str, Union[StdioConnection, SSEConnection, HTTPConnection]]
@@ -96,10 +99,15 @@ class AgentState(CopilotKitState):
 # Default MCP configuration to use when no configuration is provided in the state
 # Uses relative paths that will work within the project structure
 
+access_token = get_jwt_token()
+
 ORION_MCP_CONFIG: MCPConfig = {
     "orion-mcp": {
-        "url": MCP_AGENTCORE_URL,
-        "transport": "http_streamable",
+        "url": GATEWAY_URL,
+        "headers": { "Authorization": f"Bearer {access_token}",
+                     "X-Amzn-Bedrock-AgentCore-Runtime-Custom-x-stargate-asogateway-p7": P7
+                 },
+        "transport": "streamable_http",
     },
 }
 
@@ -109,11 +117,11 @@ async def chat_node(state: AgentState, config: RunnableConfig) -> Command[Litera
     It handles both chat responses and tool execution in one node.
     """
     # Get MCP configuration from state, or use the default config if not provided
-    mcp_config = state.get("mcp_config", DEFAULT_MCP_CONFIG)
+    mcp_config = state.get("mcp_config", ORION_MCP_CONFIG)
     # Get OpenAI API key from state
     openai_api_key = state.get("openai_api_key") 
 
-    print(f"mcp_config: {mcp_config}, default: {DEFAULT_MCP_CONFIG}")
+    print(f"mcp_config: {mcp_config}, default: {ORION_MCP_CONFIG}")
     # Set up the MCP client and tools using the configuration from state
 
     mcp_client = MultiServerMCPClient(mcp_config)

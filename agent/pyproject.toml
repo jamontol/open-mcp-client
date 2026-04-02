@@ -24,6 +24,7 @@ dependencies = [
     "langchain-google>=0.1.1",
     "langchain-google-genai>=4.2.1",
     "langgraph-api>=0.7.90",
+    "loguru>=0.7.3",
 ]
 
 [project.scripts]

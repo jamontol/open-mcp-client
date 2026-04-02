@@ -3,7 +3,8 @@
   "dockerfile_lines": [],
   "dependencies": ["."],
   "graphs": {
-    "sample_agent": "./sample_agent/agent.py:graph"
+    "sample_agent": "./sample_agent/agent.py:graph",
+    "orion_agent": "./orion_agent/agent.py:graph"
   },
   "env": ".env"
 }

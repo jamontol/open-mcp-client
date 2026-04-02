@@ -1,5 +1,7 @@
 "use client";
 
+const orionUrl = process.env.NEXT_PUBLIC_GATEWAY_URL as string;
+
 import {
   Calculator,
   Search,
@@ -16,6 +18,17 @@ type ExampleConfig = {
 };
 
 const EXAMPLE_CONFIGS: ExampleConfig[] = [
+  {
+    name: "Orion MCP",
+    description: "Connect to Orion MCP via HTTP",
+    icon: <Search className="h-4 w-4 text-gray-600" />,
+    config: {
+      orion: {
+        url: orionUrl, //"https://amrt0001-es-gw-uq4rbba6kp.gateway.bedrock-agentcore.eu-west-1.amazonaws.com/mcp",
+        transport: "streamable_http",
+      },
+    },
+  },
   {
     name: "Math Service",
     description:
