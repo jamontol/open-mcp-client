@@ -48,7 +48,7 @@ DEFAULT_MCP_CONFIG: MCPConfig = {
     "math": {
         "command": "python",
         # Use a relative path that will be resolved based on the current working directory
-        "args": ["/home/jrml/PROJECTS/BBVA/open-mcp-client/agent/math_server.py"], #[os.path.join(os.path.dirname(__file__), "..", "math_server.py")],
+        "args": ["/Users/T056924/Public/PROJECTS/open-mcp-client/agent/math_server.py"], #[os.path.join(os.path.dirname(__file__), "..", "math_server.py")],
         "transport": "stdio",
     },
 }

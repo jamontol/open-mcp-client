@@ -15,7 +15,7 @@ interface StdioConfig {
 
 interface HTTPConfig {
   url: string;
-  transport: "streamable_http";
+  transport: "http";
 }
 
 type ServerConfig = StdioConfig | HTTPConfig;
@@ -127,7 +127,7 @@ export function MCPConfigForm({ showSpreadsheet, setShowSpreadsheet }: { showSpr
           }
         : {
             url,
-            transport: "streamable_http" as const,
+            transport: "http" as const,
           };
 
     setConfigs({

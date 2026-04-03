@@ -1,6 +1,8 @@
 "use client";
 
-const orionUrl = process.env.NEXT_PUBLIC_GATEWAY_URL as string;
+const orionGatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_AGENTCORE_URL as string;
+const orionMcpUrl = process.env.NEXT_PUBLIC_MCP_AGENTCORE_URL as string;
+
 
 import {
   Calculator,
@@ -19,12 +21,23 @@ type ExampleConfig = {
 
 const EXAMPLE_CONFIGS: ExampleConfig[] = [
   {
+    name: "Orion MCP Gateway",
+    description: "Connect to Orion MCP Gateway via HTTP",
+    icon: <Search className="h-4 w-4 text-gray-600" />,
+    config: {
+      orion: {
+        url: orionGatewayUrl,
+        transport: "http",
+      },
+    },
+  },
+    {
     name: "Orion MCP",
     description: "Connect to Orion MCP via HTTP",
     icon: <Search className="h-4 w-4 text-gray-600" />,
     config: {
       orion: {
-        url: orionUrl, //"https://amrt0001-es-gw-uq4rbba6kp.gateway.bedrock-agentcore.eu-west-1.amazonaws.com/mcp",
+        url: orionMcpUrl,
         transport: "streamable_http",
       },
     },
@@ -81,7 +94,10 @@ interface ExampleConfigsProps {
   onSelectConfig: (config: Record<string, any>) => void;
 }
 
+
 export function ExampleConfigs({ onSelectConfig }: ExampleConfigsProps) {
+  console.log("Current Orion Config:", EXAMPLE_CONFIGS[0].config.orion);
+
   return (
     <div className="bg-white border rounded-md p-4">
       <div className="grid grid-cols-1 gap-3">

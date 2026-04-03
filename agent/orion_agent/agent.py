@@ -13,6 +13,7 @@ from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 from copilotkit import CopilotKitState
+from langchain_mcp_adapters.tools import load_mcp_tools
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_agent
 from copilotkit.langgraph import (copilotkit_exit)
@@ -33,10 +34,15 @@ P7 = os.getenv("P7","p7_header")
 # OAuth client credentials
 JWT_URL = os.getenv("JWT_URL", "https://onyx-obsidian.work.global.platform.bbva.com/auth/token")
 
-CLIENT_ID = "mvp-oauth-client"
-CLIENT_SECRET = os.getenv("OIDC__CLIENT_SECRET", "xxx")
+CLIENT_ID = os.getenv("CLIENT_ID") # "mvp-oauth-client"
+CLIENT_SECRET = os.getenv("CLIENT_SECRET")
 
-GATEWAY_URL = "https://amrt0001-es-gw-uq4rbba6kp.gateway.bedrock-agentcore.eu-west-1.amazonaws.com/mcp"
+MCP_AGENTCORE_URL = os.getenv(
+    "MCP_AGENTCORE_URL", "https://amrt0001-es-gw-uq4rbba6kp.gateway.bedrock-agentcore.eu-west-1.amazonaws.com/mcp"
+)
+GATEWAY_AGENTCORE_URL = os.getenv(
+    "GATEWAY_AGENTCORE_URL", ""
+) 
 
 logger.remove()
 logger.add(sys.stderr, format="<level>{level}</level> | {message}")
@@ -79,7 +85,7 @@ class SSEConnection(TypedDict):
 class HTTPConnection(TypedDict):
     url: str
     headers: Dict[str, str]
-    transport: Literal["streamable_http"]
+    transport: Literal["http"]
 
 # Type for MCP configuration
 MCPConfig = Dict[str, Union[StdioConnection, SSEConnection, HTTPConnection]]
@@ -99,66 +105,72 @@ class AgentState(CopilotKitState):
 # Default MCP configuration to use when no configuration is provided in the state
 # Uses relative paths that will work within the project structure
 
-access_token = get_jwt_token()
 
-ORION_MCP_CONFIG: MCPConfig = {
-    "orion-mcp": {
-        "url": GATEWAY_URL,
-        "headers": { "Authorization": f"Bearer {access_token}",
-                     "X-Amzn-Bedrock-AgentCore-Runtime-Custom-x-stargate-asogateway-p7": P7
-                 },
-        "transport": "streamable_http",
-    },
-}
 
 async def chat_node(state: AgentState, config: RunnableConfig) -> Command[Literal["__end__"]]:
     """
     This is a simplified agent that uses the ReAct agent as a subgraph.
     It handles both chat responses and tool execution in one node.
     """
+
+    access_token = get_jwt_token()
+
+    # logger.debug(f"TOKEN: {access_token}")
+
+    ORION_MCP_CONFIG: MCPConfig = {
+        "orion-mcp": {
+            "url": GATEWAY_AGENTCORE_URL,
+            "headers": { "Authorization": f"Bearer {access_token}",
+                        "X-Amzn-Bedrock-AgentCore-Runtime-Custom-x-stargate-asogateway-p7": P7
+                    },
+            "transport": "http",
+        },
+    }
+
     # Get MCP configuration from state, or use the default config if not provided
-    mcp_config = state.get("mcp_config", ORION_MCP_CONFIG)
+    mcp_config = ORION_MCP_CONFIG # state.get("mcp_config", ORION_MCP_CONFIG)
     # Get OpenAI API key from state
     openai_api_key = state.get("openai_api_key") 
 
-    print(f"mcp_config: {mcp_config}, default: {ORION_MCP_CONFIG}")
+    # logger.debug(f"mcp_config: {mcp_config}, default: {ORION_MCP_CONFIG}")
     # Set up the MCP client and tools using the configuration from state
 
     mcp_client = MultiServerMCPClient(mcp_config)
-    mcp_tools = await mcp_client.get_tools()
-    
-    # async with MultiServerMCPClient(mcp_config) as mcp_client:
-    #     # Get the tools
-    #     mcp_tools = mcp_client.get_tools()
+
+    async with mcp_client.session("orion-mcp") as session:
+
+        mcp_tools = await load_mcp_tools(session)
+
+        # mcp_tools = await mcp_client.get_tools()
         
-    # Create the react agent
-    model = ChatOpenAI(model="gpt-4o", api_key=openai_api_key)
-    '''
-    model = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash-lite",
-    google_api_key=os.getenv("GOOGLE_API_KEY"),
-    temperature=0,
-    convert_system_message_to_human=True # Helper for older Gemini versions if needed
-    )
+        # Create the react agent
+        model = ChatOpenAI(model="gpt-4o", api_key=openai_api_key)
+        '''
+        model = ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash-lite",
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        temperature=0,
+        convert_system_message_to_human=True # Helper for older Gemini versions if needed
+        )
 
 
-    model = ChatOpenRouter(
-    model="nvidia/nemotron-3-super-120b-a12b:free",
-    api_key= os.getenv("OPENROUTER_API_KEY"),
-    temperature=0
-    )
-    '''
-    react_agent  = create_agent(model, mcp_tools)
-    #react_agent = create_react_agent(model, mcp_tools)
-    
-    # Prepare messages for the react agent
-    agent_input = {
-        "messages": state["messages"]
-    }
-    
-    # Run the react agent subgraph with our input
-    agent_response = await react_agent.ainvoke(agent_input)
-    
+        model = ChatOpenRouter(
+        model="nvidia/nemotron-3-super-120b-a12b:free",
+        api_key= os.getenv("OPENROUTER_API_KEY"),
+        temperature=0
+        )
+        '''
+        react_agent  = create_agent(model, mcp_tools)
+        #react_agent = create_react_agent(model, mcp_tools)
+        
+        # Prepare messages for the react agent
+        agent_input = {
+            "messages": state["messages"]
+        }
+        
+        # Run the react agent subgraph with our input
+        agent_response = await react_agent.ainvoke(agent_input)
+            
     # Update the state with the new messages
     updated_messages = state["messages"] + agent_response.get("messages", []) 
     await copilotkit_exit(config)
@@ -169,10 +181,9 @@ async def chat_node(state: AgentState, config: RunnableConfig) -> Command[Litera
         update={
             "messages": updated_messages,
             "openai_api_key": state.get("openai_api_key"),
-            "mcp_config": state.get("mcp_config", DEFAULT_MCP_CONFIG)
+            "mcp_config": state.get("mcp_config", ORION_MCP_CONFIG)
         },
     )
-
 
 # Define the workflow graph with only a chat node
 workflow = StateGraph(AgentState)
